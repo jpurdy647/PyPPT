@@ -1,0 +1,10 @@
+run pip freeze > requirements.txt to produce requirements, 
+then install them in a venv on another machine: 
+
+
+
+All we need to do is create a virtual env inside the project root directory.
+python3 -m venv venv/
+
+Then we need to install the project dependencies inside the active virtual env utilizing the below command:
+pip install -r requirements.txt
