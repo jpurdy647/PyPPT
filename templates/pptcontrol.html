@@ -396,9 +396,13 @@
 					window.slideInfo = JSON.parse(this.responseText);
 					currentSlide = window.slideInfo[0];
 					for (var i = 1; i < window.slideInfo.length; i++){
-						img = new Image();
-						img.src = "/get/slide/" + window.slideInfo[i]['slide-id']
-						window.slideInfo[i]['slide-img']  = img;
+						if (window.slideInfo[i]['slide-img'] instanceof Image) {
+							window.slideInfo[i]['slide-img'].src = "/get/slide/" + window.slideInfo[i]['slide-id']
+						} else {
+							img = new Image();
+							img.src = "/get/slide/" + window.slideInfo[i]['slide-id']
+							window.slideInfo[i]['slide-img']  = img;
+						}
 					}
 					window.updateSlideInfoTimerEnabled = false;
 					console.log("about to wait");
