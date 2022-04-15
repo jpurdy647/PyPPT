@@ -216,6 +216,7 @@ def goToNext():
     global activePresentation
     global tempDir
     if not activePresentation: return False
+    if not activePresentation.SlideShowWindow.View.Slide.SlideIndex < activePresentation.Slides.Count: return False
     print("activePresentation")
     print(activePresentation)
     print("activePresentation.SlideShowWindow.View")

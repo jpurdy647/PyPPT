@@ -1,5 +1,8 @@
 <html><head>
 	
+		<script src="https://kit.fontawesome.com/b1b2894748.js" crossorigin="anonymous"></script>
+	
+	
 		<script>
 			
 			function ontouch(el, callback){
@@ -14,7 +17,7 @@
 				threshold = 150, //required min distance traveled to be considered swipe
 				restraint = 100, // maximum distance allowed at the same time in perpendicular direction
 				allowedTime = 500, // maximum time allowed to travel that distance
-				pressTime = 750,
+				pressTime = 500,
 				pressRestraint = 25,
 				elapsedTime,
 				startTime,
@@ -24,7 +27,7 @@
 					var touchobj = e.changedTouches[0]
 					dir = 'none'
 					swipeType = 'none'
-					dist = 0
+					distX = distY = 0
 					startX = touchobj.pageX
 					startY = touchobj.pageY
 					startTime = new Date().getTime() // record time when finger first makes contact with surface
@@ -37,6 +40,8 @@
 					var touchobj = e.changedTouches[0]
 					distX = touchobj.pageX - startX // get horizontal dist traveled by finger while in contact with surface
 					distY = touchobj.pageY - startY // get vertical dist traveled by finger while in contact with surface
+					//console.log("X: pageX(" + touchobj.pageX + ") - startX(" + startX + ") = " + distX);
+					//console.log("Y: pageY(" + touchobj.pageY + ") - startX(" + startY + ") = " + distY);
 					if (Math.abs(distX) > Math.abs(distY)){ // if distance traveled horizontally is greater than vertically, consider this a horizontal movement
 						dir = (distX < 0)? 'left' : 'right'
 						handletouch(e, dir, 'move', swipeType, distX) // fire callback function with params dir="left|right", phase="move", swipetype="none" etc
@@ -72,24 +77,31 @@
 				}, false)
 			}
 			 
-			// USAGE:
-			/*
-			ontouch(el, function(evt, dir, phase, swipetype, distance){
-			 // evt: contains original Event object
-			 // dir: contains "none", "left", "right", "top", or "down"
-			 // phase: contains "start", "move", or "end"
-			 // swipetype: contains "none", "left", "right", "top", or "down"
-			 // distance: distance traveled either horizontally or vertically, depending on dir value
-			 
-			 if ( phase == 'move' && (dir =='left' || dir == 'right') )
-			  console.log('You are moving the finger horizontally by ' + distance)
-			})
-			*/
+			function feedbackTouch(){
+				
+			}
 		</script>
 	
 		<title>PPT Control - Full</title>
 		
 		<style>
+		
+		
+			.spinner {
+				position: absolute;
+				top: calc(50% - 60px)
+				border: 16px solid #f3f3f3; /* Light grey */
+				border-top: 16px solid #3498db; /* Blue */
+				border-radius: 50%;
+				width: 120px;
+				height: 120px;
+				animation: spin 2s linear infinite;
+				pointer-events: none;
+			}
+			@keyframes spin {
+				0% { transform: rotate(0deg); }
+				100% { transform: rotate(360deg); }
+			}
 		
 			.loading {
 				display: none;
@@ -103,49 +115,45 @@
 			
 			
 			.loading .loader {
-			  position: absolute;
-			  top: calc(50% - 20px);
-			  left: calc(50% - 20px);
-			}
-			@keyframes loader {
-			  0% { left: -100px }
-			  100% { left: 110%; }
+				position: absolute;
+				top: calc(50% - 20px);
+				left: calc(50% - 20px);
 			}
 			#box {
-			  width: 50px;
-			  height: 50px;
-			  background: #fff;
-			  animation: animate .5s linear infinite;
-			  position: absolute;
-			  top: 0;
-			  left: 0;
-			  border-radius: 3px;
+				width: 50px;
+				height: 50px;
+				background: #fff;
+				animation: animate .5s linear infinite;
+				position: absolute;
+				top: 0;
+				left: 0;
+				border-radius: 3px;
 			}
 			@keyframes animate {
-			  17% { border-bottom-right-radius: 3px; }
-			  25% { transform: translateY(9px) rotate(22.5deg); }
-			  50% {
+				17% { border-bottom-right-radius: 3px; }
+				25% { transform: translateY(9px) rotate(22.5deg); }
+				50% {
 				transform: translateY(18px) scale(1,.9) rotate(45deg) ;
 				border-bottom-right-radius: 40px;
-			  }
-			  75% { transform: translateY(9px) rotate(67.5deg); }
-			  100% { transform: translateY(0) rotate(90deg); }
+				}
+				75% { transform: translateY(9px) rotate(67.5deg); }
+				100% { transform: translateY(0) rotate(90deg); }
 			} 
 			#shadow { 
-			  width: 50px;
-			  height: 5px;
-			  background: #000;
-			  opacity: 0.1;
-			  position: absolute;
-			  top: 59px;
-			  left: 0;
-			  border-radius: 50%;
-			  animation: shadow .5s linear infinite;
+				width: 50px;
+				height: 5px;
+				background: #000;
+				opacity: 0.1;
+				position: absolute;
+				top: 59px;
+				left: 0;
+				border-radius: 50%;
+				animation: shadow .5s linear infinite;
 			}
 			@keyframes shadow {
-			  50% {
-				transform: scale(1.2,1);
-			  }
+				50% {
+					transform: scale(1.2,1);
+				}
 			}
 		
 		
@@ -272,43 +280,21 @@
 		
 		// globals
 		var slideInfo = [];
-		var updateSlideInfoTimerEnabled = false;
-		var refreshRate = 500;
 		
-		/*
+		window.settings = {
+			updateSlideInfoTimerEnabled: false,
+			refreshRate: 500,
+			proactivePreviews: false,
+			displayCapture: false,
+			display: 0,
+			touchFeedback: true,
+			hapticFeedback: true,
+			nextSlidePreview: true
+		}
 		
+		var profiles = []
 		
-		Life cycle
-
-		Display selection
-
-		Select presentation or connect to running presentation
-		Activate presentation
-		Load all slide info and populate slide images into dict by id
-		Begin monitor screen grab
-		Display current and next slide
-
-		Wait
-
-
-		On Next
-		Send next
-		Receive new slides info with current index
-		Copy img object for current and next slide into place
-
-		On previous first last
-		Same as above
-
-		On timer
-		Refresh all monitor images
-		Apply images where necessary same as slides.
-		
-		
-		*/
-			
-		var docHammer = null
-		
-		function setupHammer(){
+		function setupTouch(){
 			
 			ontouch(document.querySelector('.ppt-control'), 
 				function(evt, dir, phase, swipetype, distance){
@@ -322,13 +308,15 @@
 						switch(swipetype) {
 							case "none": //user tapped, so advance slide
 							case "left":
-								ppt_next();
+								if (window.slideInfo[0] < window.slideInfo.length-1) {
+									ppt_next();
+								}
 								break;
 							case "right":
 								ppt_previous();
 								break;
 							case "press":
-								showMenu();
+								showWindow("menu");
 								break;
 						}
 					}
@@ -341,17 +329,17 @@
 		
 		document.addEventListener('DOMContentLoaded', init);
 		function init() {
-			setupHammer();
-			refreshPresentationsSelect();
-			refreshInfoTimer();
+			setupTouch(); //Prepare for touch events
+			refreshPresentationsSelect(); //Preload currently opened presentations
+			periodicRefresh(); //Begin recurring refresh timer
 		}
 		
 		
-		function refreshInfoTimer(){
-			if (window.updateSlideInfoTimerEnabled) {
+		function periodicRefresh(){
+			if (window.settings.updateSlideInfoTimerEnabled) {
 				updateSlideInfo();
 			}
-			setTimeout(refreshInfoTimer, refreshRate);
+			setTimeout(periodicRefresh, window.settings.refreshRate);
 		}
 		
 		
@@ -415,6 +403,7 @@
 					window.updateSlideInfoTimerEnabled = false;
 					console.log("about to wait");
 					waitForImages(function(){
+						showWindow('ppt-control');
 						setSlidePreviews();	
 						window.updateSlideInfoTimerEnabled = true;
 					});
@@ -445,10 +434,12 @@
 					updatedSlidesInfo = JSON.parse(this.responseText);
 					if (updatedSlidesInfo.length != window.slideInfo.length){
 						getSlideInfo();
+						return;
 					} else {
 						for (var i = 1; i < updatedSlidesInfo.length, i < updatedSlidesInfo.length; i++){
 							if (updatedSlidesInfo[i]['slide-id'] != window.slideInfo[i]['slide-id']){
 								getSlideInfo()
+								return;
 							}
 						}
 					}
@@ -469,8 +460,20 @@
 			}
 		}
 		
+		function setProactivePreviews(){
+			if (window.slideInfo[0] + 1 < window.slideInfo.length) {
+				document.querySelector('.slide-current').innerHTML = "";
+				document.querySelector('.slide-current').appendChild(window.slideInfo[window.slideInfo[0]+1]['slide-img']);
+				document.querySelector('.slide-next').innerHTML = "";
+				if (window.slideInfo[0] + 2 < window.slideInfo.length) {
+					document.querySelector('.slide-next').appendChild(window.slideInfo[window.slideInfo[0]+2]['slide-img']);
+				}
+			}
+		}
+		
 		function selectSlideshow(){
 			selectedPresentation = document.querySelector(".select-slideshow select").value;
+			showWindow("loading");
 			sendPost(
 				{
 					action: 'select-presentation',
@@ -478,11 +481,9 @@
 				},
 				function(){
 					if (this.responseText == "1") {
-						document.querySelector(".select-slideshow").style.display = "none";
 						updateSlideInfo();
-						document.querySelector(".loading").style.display = "block";
-						showWindow("ppt-control");
 					} else if (this.responseText == "0") {
+						showWindow("select-slideshow");
 						document.querySelector(".select-slideshow .inner-wrapper").appendChild(document.createTextNode("Failed to select presentation, prease refresh and try again\n"));
 					}
 				}
@@ -500,6 +501,9 @@
 		
 	
 		function ppt_next(){
+			if (window.settings.proactivePreviews) {
+				setProactivePreviews();
+			}
 			sendPost(
 				{
 					action: 'navigate-next',
@@ -558,6 +562,36 @@
 	
 		
 		
+			function toggleNextSlidePreview() {
+				window.settings.nextSlidePreview = !window.settings.nextSlidePreview;
+				document.getElementById("btnToggleNextPreviews").innerHTML = (window.settings.nextSlidePreview ? "Disable" : "Enable") + " Next Slide Preview";
+				document.querySelector(".slide-next").style.display = window.settings.nextSlidePreview ? "block" : "none";
+			}
+		
+			function toggleProactivePreview() {
+				window.settings.proactivePreviews = !window.settings.proactivePreviews;
+				document.getElementById("btnToggleProactivePreviews").innerHTML = (window.settings.proactivePreviews ? "Disable" : "Enable") + " Proactive Previews";
+			}
+		
+			function toggleDisplayCapture() {
+				window.settings.displayCapture = !window.settings.displayCapture;
+				document.getElementById("btnToggleDisplayCapture").innerHTML = (window.settings.displayCapture ? "Disable" : "Enable") + " Display Capture";
+			}
+		
+			function switchDisplayCapture() {
+				errorrr();
+			}
+		
+			function toggleTouchFeedback() {
+				window.settings.touchFeedback = !window.settings.touchFeedback;
+				document.getElementById("btnToggleTouchFeedback").innerHTML = (window.settings.touchFeedback ? "Disable" : "Enable") + " Touch Feedback";
+			}
+		
+			function toggleHapticFeedback() {
+				window.settings.hapticFeedback = !window.settings.hapticFeedback;
+				document.getElementById("btnToggleHapticFeedback").innerHTML = (window.settings.hapticFeedback ? "Disable" : "Enable") + " Haptic Feedback";
+			}
+		
 		
 		
 		/*
@@ -602,6 +636,26 @@
 		</div>
 		
 		<div class="menu window">
+			<!--
+			
+			
+			updateSlideInfoTimerEnabled: false,
+			refreshRate: 500,
+			proactivePreviews: false,
+			displayCapture: false,
+			display: 0,
+			touchFeedback: true
+			
+			
+			-->
+			<button id="btnToggleNextPreviews" onclick="toggleNextSlidePreview()">Disable Next Slide Preview</button>
+			<button id="btnToggleProactivePreviews" onclick="toggleProactivePreview()">Enable Proactive Previews</button>
+			<button id="btnToggleDisplayCapture" onclick="toggleDisplayCapture()">Enable Display Capture</button>
+			<button id="btnSwitchDisplay" onclick="switchDisplayCapture()">Switch Display</button>
+			<button id="btnToggleTouchFeedback" onclick="toggleTouchFeedback()">Disable Touch Feedback</button>
+			<button id="btnToggleHapticFeedback" onclick="toggleHapticFeedback()">Disable Haptic Feedback</button>
+			<button id="btnCloseMenu" onclick='showWindow("ppt-control")'>Close Menu</button>
+		
 			<ul class="menu-container">
 				<li class="preview hide">Hide Preview</li>
 				<li class="tap disable">Disable single tap advance</li>
