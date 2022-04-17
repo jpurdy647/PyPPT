@@ -6,6 +6,7 @@ import jsonify
 
 
 
+
 app = Flask(__name__)
     
 @app.route("/get/slide/<int:slideId>")
@@ -15,6 +16,12 @@ def getImage(slideId):
     print("slide Image Tuple:")
     print(slideImg)
     return send_file(slideImg[1] + "\\" + slideImg[0]);
+    
+@app.route("/get/monitor/<int:monitor>")
+def getMonitor(monitor):
+    print("Monitor grab: " + str(monitor))
+    monitorImage = PPTConnection.getMonitorImage(monitor)
+    return send_file(monitorImage, mimetype='image/png')
 
 
 
@@ -43,11 +50,11 @@ def doPost():
             return json.dumps(PPTConnection.getSlidesInfo())
         
         if (payload['action'] == "get-monitor-count"):
-            return PPTConnection.getMonitorCount()
+            return str(PPTConnection.getMonitorCount())
             
         if (payload['action'] == "get-monitor-image"):
             monitorImage = PPTConnection.getMonitorImage(payload['monitorNumber'])
-            return static_file(monitorImage[0], monitorImage[1], mimetype='image/png')
+            return send_file(monitorImage, 'monitor-1.png')
             
         if (payload['action'] == "get-slide-image"):
             slideImage = PPTConnection.getSlideImage(payload['slide-id'])

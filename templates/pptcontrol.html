@@ -219,18 +219,22 @@
 				filter: invert(16%) sepia(95%) saturate(6908%) hue-rotate(4deg) brightness(106%) contrast(118%);
 			}
 			
-			body .slide-current {
+			body .slide-current,
+			body .slide-display-capture {
 				height: 100vh;
+				display: none;
 			}
 			
-			body .slide-current img {
+			body .slide-current img,
+			body .slide-display-capture img {
 				object-fit: contain;
 				width: 100%;
 				height: 100%;
 				background: grey;
 				
 			}
-			body .slide-current.stretch img {
+			body .slide-current.stretch img,
+			body .slide-display-capture.stretch img {
 				object-fit: fill;
 			}
 				
@@ -283,13 +287,15 @@
 		
 		window.settings = {
 			updateSlideInfoTimerEnabled: false,
-			refreshRate: 500,
-			proactivePreviews: false,
+			slidesRefreshRate: 500,
+			proactivePreviews: true,
 			displayCapture: false,
-			display: 0,
+			display: 1,
+			displayCount: 1,
 			touchFeedback: true,
 			hapticFeedback: true,
-			nextSlidePreview: true
+			nextSlidePreview: true,
+			stretchFill: false
 		}
 		
 		var profiles = []
@@ -331,17 +337,15 @@
 		function init() {
 			setupTouch(); //Prepare for touch events
 			refreshPresentationsSelect(); //Preload currently opened presentations
-			periodicRefresh(); //Begin recurring refresh timer
+			setInterval(periodicRefreshSlides,window.settings.slidesRefreshRate); //Begin recurring refresh timer
 		}
 		
 		
-		function periodicRefresh(){
+		function periodicRefreshSlides(){
 			if (window.settings.updateSlideInfoTimerEnabled) {
 				updateSlideInfo();
 			}
-			setTimeout(periodicRefresh, window.settings.refreshRate);
 		}
-		
 		
 		function refreshPresentationsSelect() {
 			sendPost(
@@ -408,28 +412,29 @@
 					console.log("about to wait");
 					waitForImages(function(){
 						showWindow('ppt-control');
+						document.querySelector('.slide-current').style.display = 'block';
 						setSlidePreviews();	
 						window.settings.updateSlideInfoTimerEnabled = true;
 					});
-					
-					
-					/*
-					document.querySelector('.slide-current').innerHTML = "";
-					document.querySelector('.slide-current').appendChild(window.slideInfo[currentSlide]['slide-img']);
-					if (currentSlide + 1 < window.slideInfo.length) {
-						document.querySelector('.slide-next img').style.display = 'block';
-						document.querySelector('.slide-next').innerHTML = "";
-						document.querySelector('.slide-next').appendChild(window.slideInfo[currentSlide]['slide-img']);
-					} else {
-						document.querySelector('.slide-next img').style.display = 'none';
-						document.querySelector('.slide-next img').src = "";
-					}
-					*/
+				
 				}
 			);
 		}
 		
 		function updateSlideInfo(){
+			
+			if (window.settings.displayCapture){
+				children = document.querySelector('.slide-display-capture').children;
+				if (children.length == 0 || !(children[0] instanceof Image)) {
+					document.querySelector('.slide-display-capture').innerHTML = "";
+					img = new Image();
+					img.src = "/get/monitor/" + window.settings.display;
+					document.querySelector('.slide-display-capture').appendChild(img);
+				} else {
+					children[0].src = "/get/monitor/" + window.settings.display;
+				}
+			}
+			
 			sendPost(
 				{
 					action: 'get-slides'
@@ -453,6 +458,7 @@
 					}
 				}
 			);
+			
 		}
 		
 		function setSlidePreviews(){
@@ -575,15 +581,33 @@
 			function toggleProactivePreview() {
 				window.settings.proactivePreviews = !window.settings.proactivePreviews;
 				document.getElementById("btnToggleProactivePreviews").innerHTML = (window.settings.proactivePreviews ? "Disable" : "Enable") + " Proactive Previews";
+				
 			}
 		
 			function toggleDisplayCapture() {
 				window.settings.displayCapture = !window.settings.displayCapture;
 				document.getElementById("btnToggleDisplayCapture").innerHTML = (window.settings.displayCapture ? "Disable" : "Enable") + " Display Capture";
+				
+				if (window.settings.displayCapture){
+					document.querySelector('.slide-current').style.display = 'none';
+					document.querySelector('.slide-display-capture').style.display = 'block';
+				} else {
+					document.querySelector('.slide-current').style.display = 'block';
+					document.querySelector('.slide-display-capture').style.display = 'none';
+				}
 			}
 		
 			function switchDisplayCapture() {
-				errorrr();
+				sendPost({
+					action: 'get-monitor-count'
+				},
+				function(){
+					window.settings.displayCount = Number(this.responseText);
+					window.settings.display += 1;
+					if (window.settings.display > window.settings.displayCount) {
+						window.settings.display = 1;
+					}
+				});
 			}
 		
 			function toggleTouchFeedback() {
@@ -640,18 +664,6 @@
 		</div>
 		
 		<div class="menu window">
-			<!--
-			
-			
-			updateSlideInfoTimerEnabled: false,
-			refreshRate: 500,
-			proactivePreviews: false,
-			displayCapture: false,
-			display: 0,
-			touchFeedback: true
-			
-			
-			-->
 			<button id="btnToggleNextPreviews" onclick="toggleNextSlidePreview()">Disable Next Slide Preview</button>
 			<button id="btnToggleProactivePreviews" onclick="toggleProactivePreview()">Enable Proactive Previews</button>
 			<button id="btnToggleDisplayCapture" onclick="toggleDisplayCapture()">Enable Display Capture</button>
@@ -659,19 +671,15 @@
 			<button id="btnToggleTouchFeedback" onclick="toggleTouchFeedback()">Disable Touch Feedback</button>
 			<button id="btnToggleHapticFeedback" onclick="toggleHapticFeedback()">Disable Haptic Feedback</button>
 			<button id="btnCloseMenu" onclick='showWindow("ppt-control")'>Close Menu</button>
-		
-			<ul class="menu-container">
-				<li class="preview hide">Hide Preview</li>
-				<li class="tap disable">Disable single tap advance</li>
-				<li class="switch-layout">Switch Layout</li>
-				<li class="preview hide">Go To Slide</li>
-			</ul>
 		</div>
 		
 		<div class="options">
 		</div>
 		
 		<div class="ppt-control window">
+			<div class="slide-display-capture">
+			</div>
+			
 			<div class="slide-current">
 			</div>
 			
